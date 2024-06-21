@@ -6,6 +6,7 @@ from verifier import VerificationKey
 from dataclasses import dataclass
 from poly import Polynomial, Basis
 
+
 @dataclass
 class Setup(object):
     #   ([1]₁, [x]₁, ..., [x^{d-1}]₁)
@@ -29,6 +30,9 @@ class Setup(object):
         # powers_of_x[i] =  b.G1 * tau**i = powers_of_x[i - 1] * tau
         # TODO: generate powers_of_x
         # reference: https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/5-plonk-polycom.md
+
+        for i in range(0, len(powers_of_x)):
+            powers_of_x[i] = b.multiply(b.G1, tau ** i)
 
         print("Generated G1 side, X^1 point: {}".format(powers_of_x[1]))
 
