@@ -51,6 +51,8 @@ class Setup(object):
     def commit(self, values: Polynomial) -> G1Point:
         if (values.basis == Basis.LAGRANGE):
             # inverse FFT from Lagrange basis to monomial basis
+            # 为什么这里要把拉格朗日基 转成 多项式基？ 只是为了求commit的效率？
+            # 求KZG承诺好像没有走一次Hash？
             coeffs = values.ifft().values
         elif (values.basis == Basis.MONOMIAL):
             coeffs = values.values

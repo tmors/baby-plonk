@@ -88,8 +88,12 @@ class Prover:
         # FIXME: Hash pk and PI into transcript
         public_vars = self.program.get_public_assignments()
         # Public input polynomial
+
+        # 为什么要 -witness(v) 而不是 witness(v)?
+        # 为什么这个PI是这样构造的？ 这个是 专门存放公开参数的 fai？
         PI = Polynomial(
             [Scalar(-witness[v]) for v in public_vars]
+            # 填充 0 到 2 ^ n ?
             + [Scalar(0) for _ in range(self.group_order - len(public_vars))],
             Basis.LAGRANGE,
         )
@@ -146,6 +150,7 @@ class Prover:
         c_1 = setup.commit(self.C)
 
         # Sanity check that witness fulfils gate constraints
+        # 为什么此时满足这一条？
         assert (
             self.A * self.pk.QL
             + self.B * self.pk.QR
@@ -241,7 +246,13 @@ class Prover:
         # reference: https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/4-plonk-constraints.md
         gate_constraints_coeff = (
             # TODO: your code
-        )
+                self.A * self.pk.QL
+                + self.B * self.pk.QR
+                + self.A * self.B * self.pk.QM
+                + self.C * self.pk.QO
+                + self.PI
+                + self.pk.QC
+        ).ifft()
 
         normal_roots = Polynomial(
             roots_of_unity, Basis.LAGRANGE
@@ -267,8 +278,22 @@ class Prover:
 
         # construct permutation polynomial
         # reference: https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/3-plonk-permutation.md
+
+        f_i = []
+        g_i = []
+        for i in range(group_order):
+            f_i.append(self.rlc(self.A.values[i], roots_of_unity[i]) * self.rlc(self.B.values[i], 2 * roots_of_unity[i]) * self.rlc(self.C.values[i], 3 * roots_of_unity[i]))
+            g_i.append(self.rlc(self.A.values[i], self.pk.S1.values[i]) * self.rlc(self.B.values[i], self.pk.S2.values[i]) * self.rlc(self.C.values[i], self.pk.S3.values[i]))
+
+        f_x = Polynomial(f_i, Basis.LAGRANGE)
+        fx_coeff = f_x.ifft()
+
+        g_x = Polynomial(g_i, Basis.LAGRANGE)
+        gx_coeff = g_x.ifft()
+
         permutation_grand_product_coeff = (
             # TODO: your code
+            ZW_coeff * gx_coeff - Z_coeff * fx_coeff
         )
 
         permutation_first_row_coeff = (Z_coeff - Scalar(1)) * L0_coeff
