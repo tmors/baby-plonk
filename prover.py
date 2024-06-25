@@ -120,8 +120,8 @@ class Prover:
         return Proof(msg_1, msg_2, msg_3, msg_4, msg_5)
 
     def round_1(
-        self,
-        witness: dict[Optional[str], int],
+            self,
+            witness: dict[Optional[str], int],
     ) -> Message1:
         # https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/1-plonk-arithmetization.md
         program = self.program
@@ -151,14 +151,15 @@ class Prover:
 
         # Sanity check that witness fulfils gate constraints
         # 为什么此时满足这一条？
+        # 这里为什么是使用拉格朗日基进行比较？
         assert (
-            self.A * self.pk.QL
-            + self.B * self.pk.QR
-            + self.A * self.B * self.pk.QM
-            + self.C * self.pk.QO
-            + self.PI
-            + self.pk.QC
-            == Polynomial([Scalar(0)] * group_order, Basis.LAGRANGE)
+                self.A * self.pk.QL
+                + self.B * self.pk.QR
+                + self.A * self.B * self.pk.QM
+                + self.C * self.pk.QO
+                + self.PI
+                + self.pk.QC
+                == Polynomial([Scalar(0)] * group_order, Basis.LAGRANGE)
         )
 
         return Message1(a_1, b_1, c_1)
@@ -186,16 +187,16 @@ class Prover:
         # Sanity-check that Z was computed correctly
         for i in range(group_order):
             assert (
-                self.rlc(self.A.values[i], roots_of_unity[i])
-                * self.rlc(self.B.values[i], 2 * roots_of_unity[i])
-                * self.rlc(self.C.values[i], 3 * roots_of_unity[i])
-            ) * Z_values[i] - (
-                self.rlc(self.A.values[i], self.pk.S1.values[i])
-                * self.rlc(self.B.values[i], self.pk.S2.values[i])
-                * self.rlc(self.C.values[i], self.pk.S3.values[i])
-            ) * Z_values[
-                (i + 1) % group_order
-            ] == 0
+                           self.rlc(self.A.values[i], roots_of_unity[i])
+                           * self.rlc(self.B.values[i], 2 * roots_of_unity[i])
+                           * self.rlc(self.C.values[i], 3 * roots_of_unity[i])
+                   ) * Z_values[i] - (
+                           self.rlc(self.A.values[i], self.pk.S1.values[i])
+                           * self.rlc(self.B.values[i], self.pk.S2.values[i])
+                           * self.rlc(self.C.values[i], self.pk.S3.values[i])
+                   ) * Z_values[
+                       (i + 1) % group_order
+                       ] == 0
 
         Z = Polynomial(Z_values, Basis.LAGRANGE)
         z_1 = setup.commit(Z)
@@ -217,20 +218,20 @@ class Prover:
         A_coeff, B_coeff, C_coeff, S1_coeff, S2_coeff, S3_coeff, Z_coeff, QL_coeff, QR_coeff, QM_coeff, QO_coeff, QC_coeff, PI_coeff = (
             x.ifft()
             for x in (
-                self.A,
-                self.B,
-                self.C,
-                self.pk.S1,
-                self.pk.S2,
-                self.pk.S3,
-                self.Z,
-                self.pk.QL,
-                self.pk.QR,
-                self.pk.QM,
-                self.pk.QO,
-                self.pk.QC,
-                self.PI,
-            )
+            self.A,
+            self.B,
+            self.C,
+            self.pk.S1,
+            self.pk.S2,
+            self.pk.S3,
+            self.Z,
+            self.pk.QL,
+            self.pk.QR,
+            self.pk.QM,
+            self.pk.QO,
+            self.pk.QC,
+            self.PI,
+        )
         )
 
         L0_coeff = (
@@ -244,8 +245,18 @@ class Prover:
 
         # construct gate constraints polynomial in coefficient form
         # reference: https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/4-plonk-constraints.md
+        # 单项基相乘， 是否等于 拉格朗日基相乘 再通过ifft转换成 单项基?
         gate_constraints_coeff = (
             # TODO: your code
+                A_coeff * QL_coeff
+                + B_coeff * QR_coeff
+                + A_coeff * B_coeff * QM_coeff
+                + C_coeff * QO_coeff
+                + PI_coeff
+                + QC_coeff
+        )
+
+        gate_constraints_coeff_2 = (
                 self.A * self.pk.QL
                 + self.B * self.pk.QR
                 + self.A * self.B * self.pk.QM
@@ -265,16 +276,16 @@ class Prover:
 
         for i in range(group_order):
             assert (
-                self.rlc(self.A.values[i], roots_of_unity[i])
-                * self.rlc(self.B.values[i], 2 * roots_of_unity[i])
-                * self.rlc(self.C.values[i], 3 * roots_of_unity[i])
-            ) * self.Z.values[i] - (
-                self.rlc(self.A.values[i], self.pk.S1.values[i])
-                * self.rlc(self.B.values[i], self.pk.S2.values[i])
-                * self.rlc(self.C.values[i], self.pk.S3.values[i])
-            ) * ZW.values[
-                i % group_order
-            ] == 0
+                           self.rlc(self.A.values[i], roots_of_unity[i])
+                           * self.rlc(self.B.values[i], 2 * roots_of_unity[i])
+                           * self.rlc(self.C.values[i], 3 * roots_of_unity[i])
+                   ) * self.Z.values[i] - (
+                           self.rlc(self.A.values[i], self.pk.S1.values[i])
+                           * self.rlc(self.B.values[i], self.pk.S2.values[i])
+                           * self.rlc(self.C.values[i], self.pk.S3.values[i])
+                   ) * ZW.values[
+                       i % group_order
+                       ] == 0
 
         # construct permutation polynomial
         # reference: https://github.com/sec-bit/learning-zkp/blob/master/plonk-intro-cn/3-plonk-permutation.md
@@ -291,17 +302,29 @@ class Prover:
         g_x = Polynomial(g_i, Basis.LAGRANGE)
         gx_coeff = g_x.ifft()
 
+        fxx = (
+                self.rlc(A_coeff, roots_coeff)
+                * self.rlc(B_coeff, roots_coeff * Scalar(2))
+                * self.rlc(C_coeff, roots_coeff * Scalar(3))
+        )
+
+        gxx = (
+                self.rlc(A_coeff, S1_coeff)
+                * self.rlc(B_coeff, S2_coeff)
+                * self.rlc(C_coeff, S3_coeff)
+        )
+
         permutation_grand_product_coeff = (
             # TODO: your code
-            ZW_coeff * gx_coeff - Z_coeff * fx_coeff
+            fxx * Z_coeff - gxx * ZW_coeff
         )
 
         permutation_first_row_coeff = (Z_coeff - Scalar(1)) * L0_coeff
 
         all_constraints = (
-            gate_constraints_coeff
-            + permutation_grand_product_coeff * alpha
-            + permutation_first_row_coeff * alpha**2
+                gate_constraints_coeff
+                + permutation_grand_product_coeff * alpha
+                + permutation_first_row_coeff * alpha ** 2
         )
 
         # quotient polynomial
